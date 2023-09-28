@@ -1,0 +1,96 @@
+unit uMigrador;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, FireDAC.Stan.Intf, FireDAC.Stan.Option,
+  FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def,
+  FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Phys.MySQL,
+  FireDAC.Phys.MySQLDef, FireDAC.VCLUI.Wait, Data.DB, FireDAC.Comp.Client,
+  FireDAC.Phys.PG, FireDAC.Phys.PGDef, Vcl.StdCtrls, IdBaseComponent,
+  IdComponent, IdTCPConnection, IdTCPClient, IdHTTP, System.JSON;
+
+type
+  TForm1 = class(TForm)
+    cnnMysql: TFDConnection;
+    cnnPgsql: TFDConnection;
+    FDPhysPgDriverLink1: TFDPhysPgDriverLink;
+    Button1: TButton;
+    memo: TMemo;
+    procedure Button1Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+{$R *.dfm}
+
+procedure TForm1.Button1Click(Sender: TObject);
+  var
+    resultado  : String;
+    jsv, LItem : TJSONValue;
+    LJSonArr   : TJSONArray;
+    tabla      : String;
+    http : TIdHTTP;
+    lParamList: TStringList;
+begin
+     memo.Lines.Clear;
+try
+try
+  http := TIdHTTP.Create();
+  //Creo lista de parámetros
+
+  lParamList := TStringList.Create();
+   {
+    "idTipoAux": 1,
+    "id": 1,
+    "idMoneda": 1,
+    "actualizar": 0,
+    "estado": "1",
+    "tope": 10000,
+    "saldo": 2500
+  }
+    lParamList.Add('idTipoAux:1');
+    lParamList.Add('id=1');
+    lParamList.Add('idMoneda=1');
+    lParamList.Add('actualizar=0');
+    lParamList.Add('estado=""');
+    lParamList.Add('tope=0');
+    lParamList.Add('saldo=0');
+
+  //  resultado := http.Get('http://localhost:8080/owl/mercaderia/actualizar');
+
+  //resultado := http.Get('http://localhost:8080/owl/deudores');
+  http.Request.ContentType := 'application/x-www-form-urlencoded';
+  resultado := http.Post('http://localhost:8080/owl/deudores/movimientos', lParamList);
+    memo.Lines.Text := resultado;
+  LJSONArr := TJSONObject.ParseJSONValue(TEncoding.ASCII.GetBytes(resultado),0) as TJSONArray;
+  for jsv in LJSONArr do
+    begin
+    for LItem in TJSONArray(jsv) do
+      begin
+        memo.Lines.Add(TJSONPAIR(LItem).JsonString.Value + ' : ' + TJSONPAIR(LItem).JsonValue.ToString);
+      end;
+    end;
+
+Except On ex: Exception Do
+  begin
+    memo.Lines.Text := 'Error: ' + ex.Message;
+  end;
+end;
+finally
+   http.Free;
+   LJSonArr.Free;
+end;
+
+
+end;
+
+end.
